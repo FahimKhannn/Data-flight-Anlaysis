@@ -3,7 +3,7 @@
 
 ## Overview
 This project involves the analysis of commercial flight data from 1999 to 2008 to uncover trends and patterns in flight delays and predict diverted flights. The analysis was conducted using Python, R, and SQL.
-Flight data was retrieved from Havard Database #https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7
+Flight data was retrieved from Havard Database (https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7)
 
 ## Objectives
 - Analyze flight delay patterns to identify key contributing factors.
@@ -39,9 +39,3 @@ Flight data was retrieved from Havard Database #https://dataverse.harvard.edu/da
 3. Install the necessary dependencies: `pip install -r requirements.txt`
 4. Run the analysis scripts: `python analysis_script.py`
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-This README summary includes an overview of the project, objectives, technologies used, key contributions, results, and instructions on how to use the project. Adjust the repository URL and other details as needed.
