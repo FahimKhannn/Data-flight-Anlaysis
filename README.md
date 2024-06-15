@@ -3,16 +3,18 @@
 
 ## Overview
 This project involves the analysis of commercial flight data from 1999 to 2008 to uncover trends and patterns in flight delays and predict diverted flights. The analysis was conducted using Python, R, and SQL.
-Flight data was retrieved from Havard Database (https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7)
+Flight data was retrieved from Havard Database : https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/HG7NV7
 
 ## Objectives
-- Analyze flight delay patterns to identify key contributing factors.
-- Predict diverted flights using machine learning techniques.
+- Analyze flight delay patterns to identify best times and days of the week to minimise delays each year
+- Predict diverted flights using logistic regression using features from the dataset like departure date, the scheduled departure and arrival times, the coordinates and distance between departure
+  and planned arrival airports, and the carrier
+-
 
 ## Technologies Used
 - **Python**: Data exploration, machine learning.
-- **R**: Statistical analysis.
-- **SQL**: Data extraction and cleaning.
+- **R**: Data exploration, machine learning.
+- **SQL**: Data extraction, cleaning and data manipulation
 
 ## Key Contributions
 ### Data Preparation
@@ -20,22 +22,18 @@ Flight data was retrieved from Havard Database (https://dataverse.harvard.edu/da
 - Created a column named "significant delay" to identify flights with arrival and departure delays greater than 15 minutes.
 
 ### Exploratory Data Analysis (EDA)
-- Utilized Python for initial data exploration, visualizing delay distributions, and identifying outliers.
-- Conducted detailed statistical analysis in R to understand the impact of different factors on flight delays.
+- Utilized Python and R for initial data exploration, visualizing delay distributions, and identifying outliers.
+- Conducted detailed statistical analysis to understand the impact of different factors on flight delays.
 
 ### Machine Learning
-- Implemented logistic regression models in Python to predict diverted flights.
+- Implemented logistic regression models to predict diverted flights.
 - Trained and evaluated models, achieving high accuracy in predictions.
 - Used feature engineering to enhance model performance, identifying critical factors influencing flight diversions.
+- Visualized the coefficients from the model across the 10 years of flight data
 
 ## Results
 - Identified key factors contributing to flight delays, providing actionable insights for reducing delays.
-- Improved understanding of delay patterns, aiding in better decision-making for flight operations.
+- Improved understanding of delay patterns, aiding in better decision-making for time and days of week to fly.
 - Successfully predicted diverted flights, enhancing operational efficiency and decision-making.
 
-## How to Use
-1. Clone the repository: `git clone https://github.com/yourusername/flight-data-analysis.git`
-2. Navigate to the project directory: `cd flight-data-analysis`
-3. Install the necessary dependencies: `pip install -r requirements.txt`
-4. Run the analysis scripts: `python analysis_script.py`
 
