@@ -1,0 +1,386 @@
+---
+title: "ST2195 Coursework Final"
+author: "Md Fahim Faisal Khan"
+date: "2024-04-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(DBI)
+library(dplyr)
+library(RSQLite)
+library(ggplot2)
+library(ggthemes)
+library(cowplot)
+library(shiny)
+library(ggforce)
+library(GGally)
+library(scales)
+library(gridExtra)
+library(lubridate)
+#Machine learning
+library(mlr3)
+library(mlr3learners)
+library(skimr)
+library(mlr3pipelines)
+library(mlr3tuning)
+library(paradox)
+library(mlr3viz)
+library(ranger)
+library(mlr3measures)
+library(data.table)
+```
+```{r}
+# Reading the files
+# Here we use read.csv function to read the csv data files and save it into R. We use header = true to include header
+
+airports <- read.csv("airports.csv", header = TRUE)
+carriers <- read.csv("carriers.csv", header = TRUE)
+planes <- read.csv("plane-data.csv", header = TRUE)
+variable_desc <- read.csv("variable-descriptions.csv", header = TRUE)
+year1999 <- read.csv("1999.csv", header = TRUE)
+year2000 <- read.csv("2000.csv", header = TRUE)
+year2001 <- read.csv("2001.csv", header = TRUE)
+year2002 <- read.csv("2002.csv", header = TRUE)
+year2003 <- read.csv("2003.csv", header = TRUE)
+year2004 <- read.csv("2004.csv", header = TRUE)
+year2005 <- read.csv("2005.csv", header = TRUE)
+year2006 <- read.csv("2006.csv", header = TRUE)
+year2007 <- read.csv("2007.csv", header = TRUE)
+year2008 <- read.csv("2008.csv", header = TRUE)
+
+```
+```{r}
+#Now we use dbwritetable to write a dataframe into a database table in DBbrowser.
+dbWriteTable(conn, "airports", airports)
+dbWriteTable(conn, 'carriers' , carriers)
+dbWriteTable(conn, 'planes', planes)
+dbWriteTable(conn, "variable-descriptions" , variable_desc)
+dbWriteTable(conn, 'flights_data' , year1999, append = TRUE) 
+dbWriteTable(conn, 'flights_data' , year2000, append = TRUE) 
+dbWriteTable(conn, 'flights_data' , year2001, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2002, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2003, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2004, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2005, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2006, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2007, append = TRUE)
+dbWriteTable(conn, 'flights_data' , year2008, append = TRUE)
+
+```
+```{r}
+# Establishing Connection to SQL
+conn <- dbConnect(RSQLite::SQLite(), "Coursework_R.db")
+```
+```{r}
+# We check the columns in our 'flights_data'
+dbListFields(conn,'flights_data')
+```
+```{r}
+#We add a new column called 'Significant Delay' to indicate whether avg and dep delays are > 15
+dbExecute(conn, "
+ALTER TABLE flights_data
+ADD COLUMN SignificantDelay INTEGER DEFAULT 0;
+")
+```
+```{r}
+# We set the condition if arr and dep delay > 15 it is indicated as 1, o.w. 0
+dbExecute(conn, "                 
+UPDATE flights_data
+SET SignificantDelay = CASE 
+    WHEN ArrDelay > 15 OR DepDelay > 15 THEN 1  
+    ELSE 0
+END;
+")
+```
+```{r}
+# Qn 2a
+# This SQL query selects data needed for qn2a from the "flights_data" table.
+# We use SELECT to choose our columns of interest FROM our flights_data table
+# We use WHERE to set the conditions 
+bestdays_query <- "
+SELECT Year, 
+       DayOfWeek, 
+       COUNT(*) AS TotalDelays,
+       AVG(ArrDelay) AS AvgArrDelay,  
+       AVG(DepDelay) AS AvgDepDelay,  
+       (AVG(ArrDelay) + AVG(DepDelay)) / 2 AS AvgTotalDelay
+FROM flights_data
+WHERE Cancelled = 0 AND Diverted = 0 AND SignificantDelay = 1  
+GROUP BY Year, DayOfWeek
+ORDER BY Year, DayOfWeek;
+"
+bestdays_df <- dbGetQuery(conn, bestdays_query)
+bestdays_df
+```
+```{r}
+day_mapping <- setNames(c('Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'),
+                        c(1, 2, 3, 4, 5, 6, 7))
+
+# Apply the mapping and convert Year to character
+bestdays_df <- bestdays_df %>%
+  mutate(DayOfWeek = day_mapping[as.character(DayOfWeek)],
+         Year = as.character(Year))
+```
+```{r}
+# Show the head of the dataframe
+print(head(bestdays_df))
+```
+```{r}
+# Ensure that DayOfWeek is a factor and ordered correctly
+bestdays_df$DayOfWeek <- factor(bestdays_df$DayOfWeek, levels = c("Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"))
+# Converting the "Year" column in the dataframe bestdays_df to character type.
+bestdays_df$Year <- as.character(bestdays_df$Year)
+```
+```{r}
+# Plotting best days to minimise delay based on AverageTotalDelay, grouped by year
+bestdaysplot <- ggplot(bestdays_df, aes(x = DayOfWeek, y = AvgTotalDelay)) +
+  geom_line(aes(group = Year), color = "gray40", size = 1) +  # Draw lines in gray, grouped by Year
+  geom_point(aes(color = DayOfWeek), size = 3) +  # Add points colored by DayOfWeek
+  scale_color_brewer(palette = "Paired") +  # Color palette for the points
+  labs(title = "Average Total Delay by Day of the Week",
+       x = "Day of the Week",
+       y = "Average Total Delay (minutes)") +  # Label axes
+  theme_minimal() +  # Use a minimal theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Adjust text angle for x-axis labels
+        plot.title = element_text(hjust = 0.5),  # Center the plot title
+        axis.title = element_text(size = 12),  # Increase text size for axis titles
+        legend.title = element_text(size = 12),  # Increase text size for legend title
+        legend.text = element_text(size = 10)) +  # Increase text size for legend
+  facet_wrap(~ Year, nrow = 2)  # Facet by Year with 2 rows
+bestdaysplot
+# Saving the plot for report
+ggsave("bestdays_plot.png", plot = bestdaysplot, width = 12, height = 8)
+```
+```{r}
+
+# Create a bar plot showing the count of significant delays by day of the week, grouped by year
+delay_count_plot <- ggplot(bestdays_df, aes(x = DayOfWeek, y = TotalDelays, fill = DayOfWeek)) +
+  geom_bar(stat = "identity", position = position_dodge()) +  # Draw bars
+  labs(title = "Count of Significant Delays by Day of the Week",
+       x = "Day of the Week",
+       y = "Count of Delays") +  # Label axes
+  facet_wrap(~ Year, nrow = 2) +  # Organize by Year, use two rows
+  scale_fill_brewer(palette = "Paired") +  # Use a color palette
+  theme_minimal() +  # Minimal theme for clarity
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Adjust text angle for readability
+        axis.text.y = element_text(size = 10),  # Increase text size for y-axis labels
+        axis.title = element_text(size = 12),  # Increase text size for axis titles
+        plot.title = element_text(hjust = 0.5, size = 14))  # Center title
+
+# Display the plot
+print(delay_count_plot)
+
+ggsave("delay_count_plot.png", plot = delay_count_plot, width = 12, height = 8)
+
+```
+```{r}
+besttimes_query <- "
+SELECT
+  Year,
+  CASE
+    WHEN CRSDeptime BETWEEN 501 AND 900 THEN 'Early Morning'
+    WHEN CRSDeptime BETWEEN 901 AND 1200 THEN 'Morning'
+    WHEN CRSDeptime BETWEEN 1201 AND 1700 THEN 'Noon'
+    WHEN CRSDeptime BETWEEN 1701 AND 1900 THEN 'Evening'
+    WHEN CRSDeptime BETWEEN 1901 AND 2400 THEN 'Night'
+    WHEN CRSDeptime BETWEEN 0 AND 500 THEN 'Late Night'
+    ELSE NULL  -- Set undefined times to NULL
+  END AS TimeOfDay,
+  COUNT(*) AS TotalDelays,
+  AVG(ArrDelay) AS AvgArrDelay,
+  AVG(DepDelay) AS AvgDepDelay,
+  (AVG(ArrDelay) + AVG(DepDelay)) / 2 AS AvgTotalDelay
+FROM flights_data  
+WHERE Cancelled = 0 AND Diverted = 0 AND SignificantDelay = 1
+GROUP BY Year, TimeOfDay
+HAVING TimeOfDay IS NOT NULL 
+ORDER BY Year, TimeOfDay
+"
+
+# Execute the query and fetch the results
+besttimes_df <- dbGetQuery(conn, besttimes_query)
+head(besttimes_df)
+besttimes_df
+```
+```{r}
+# Define the order of time of day categories
+time_of_day_order <- c('Early Morning', 'Morning', 'Noon', 'Evening', 'Night', 'Late Night')
+
+# Convert the 'TimeOfDay' column to a factor with specified levels and ordered
+besttimes_df$TimeOfDay <- factor(besttimes_df$TimeOfDay, levels = time_of_day_order, ordered = TRUE)
+
+# Sort the dataframe by 'Year' first and then 'TimeOfDay'
+besttimes_df <- besttimes_df[order(besttimes_df$Year, besttimes_df$TimeOfDay), ]
+
+# It should now return 'TimeOfDay' in order
+head(besttimes_df)
+besttimes_df
+```
+```{r}
+# We notice the index is not in the right order
+besttimes_df <- besttimes_df[order(besttimes_df$Year, besttimes_df$TimeOfDay), ]
+rownames(besttimes_df) <- NULL
+
+# It should now return 'TimeOfDay' in order with reset index
+head(besttimes_df)
+besttimes_df
+```
+```{r}
+besttimes_df$Year <- as.factor(besttimes_df$Year)
+
+theme_set(theme_bw())
+
+# Create a FacetGrid-like plot with ggplot2 to plot separate graphs for each year
+besttimes_avgplt <- # Create the line plot
+line_plot <- ggplot(besttimes_df, aes(x = TimeOfDay, y = AvgTotalDelay, group = Year, color = Year)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Average Total Delay by Time of Day for Each Year",
+       x = "Time of Day",
+       y = "Average Total Delay (minutes)") +
+  theme_minimal() +
+  facet_wrap(~Year, nrow= 2) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels by 45 degrees
+# Display the plot
+print(besttimes_avgplt)
+ggsave("Timeofday4.png", plot = besttimes_avgplt, width = 12, height = 8)
+
+```
+```{r}
+besttimes_df$Year <- as.factor(besttimes_df$Year)
+
+# Create the bar graph with facets for each year
+bar_graph <- ggplot(besttimes_df, aes(x = TimeOfDay, y = TotalDelays, fill = TimeOfDay)) +
+  geom_bar(stat = "identity", color = "black") +
+  labs(title = "Count of Delays by Time of Day for Each Year",
+       x = "Time of Day",
+       y = "Count of Delays") +
+  theme_minimal() +
+  facet_wrap(~Year, nrow = 2, ncol = 5) + # Organize facets into 2 rows by 5 columns
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x labels for clarity
+
+# Display the bar graph
+print(bar_graph)
+ggsave("bar_graph.png", plot = bar_graph, width = 8, height = 6, units = "in", dpi = 300)
+```
+```{r}
+#Question 2(b)
+planeage_query <- "
+SELECT f.Year AS FlightYear, f.TailNum, p.year AS ManufacturedYear, 
+COUNT(*) AS TotalDelays,
+       AVG(ArrDelay) AS AvgArrDelay,  
+       AVG(DepDelay) AS AvgDepDelay,  
+       (AVG(ArrDelay) + AVG(DepDelay)) / 2 AS AvgTotalDelay
+FROM flights_data AS f
+JOIN planes AS p ON f.TailNum = p.TailNum
+WHERE f.Cancelled = 0 AND f.Diverted = 0 AND SignificantDelay = 1
+GROUP BY f.year, p.year;
+"
+
+# Fetch the data
+planeage_df <- dbGetQuery(conn , planeage_query)
+planeage_df
+```
+```{r}
+planeage_df <- planeage_df %>%
+  mutate(
+    PlaneAge = FlightYear - as.numeric(ManufacturedYear)  # Calculate plane age
+  )
+```
+```{r}
+planeage_df <- planeage_df %>% 
+  filter(PlaneAge <= 100, PlaneAge >= 0)  
+planeage_df
+```
+```{r}
+#Now, create the scatter plot
+planeage_plot <-
+  ggplot(planeage_df, aes(x = PlaneAge, y = AvgTotalDelay)) +
+  geom_point(aes(color = PlaneAge), alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  facet_wrap(~ FlightYear, nrow = 2) +
+  labs(x = "Plane Age (Years)", 
+       y = "Average Delay (Minutes)", 
+       title = "Effect of Plane Age on Flight Delays Across The Years") +
+  theme_minimal() +
+  scale_color_gradient(low = "blue", high = "red")
+  # Use a gradient color scale for visualizing the plane age
+planeage_plot
+ggsave("planeage_plot3.png", plot = planeage_plot, width = 8, height = 6, units = "in", dpi = 300)
+```
+```{r}
+diverted_query <- "
+SELECT 
+  Year, Month, DayofMonth, DayOfWeek, CRSDepTime, CRSArrTime, 
+  Distance, UniqueCarrier, Diverted, 
+  origin.lat AS OriginLatitude, origin.long AS OriginLongitude,
+  dest.lat AS DestLatitude, dest.long AS DestLongitude
+FROM flights_data
+INNER JOIN airports origin ON flights_data.Origin = origin.IATA  
+INNER JOIN airports dest ON flights_data.Dest = dest.IATA 
+INNER JOIN carriers c ON flights_data.UniqueCarrier = c.Code
+WHERE Diverted IS NOT NULL;
+"
+
+# Execute the query and fetch the data for all selected years
+all_years_data <- dbGetQuery(conn, diverted_query)
+
+# Print the first and last few rows of the compiled data
+print(head(all_years_data))
+print(tail(all_years_data))
+
+```
+```{r}
+skim(all_years_data)
+```
+```{r}
+str(all_years_data) # We check the form of our features and target variables
+sum(is.na(all_years_data)) #We check for any null values
+```
+```{r}
+results <- list()  # to store results for each year
+
+for (year in 1999:2008) {
+  # Subset data for the year
+  data_year <- subset(all_years_data, Year == year)
+  data$Diverted <- factor(data$Diverted, levels = c(0, 1))
+  # Define the task
+  task <- TaskClassif$new(id = paste("flight_diversion", year), backend = data_year, target = "Diverted")
+  
+  # Define the learner with logistic regression
+  learner <- lrn("classif.log_reg", predict_type = "prob")
+  
+  # Encode categorical variables
+  graph <- GraphLearner$new(
+    po("encode") %>>%
+    po("learner", learner, id = "log_reg")
+  )
+  
+  # Train the model
+  graph$train(task)
+  
+  # Evaluate the model using cross-validation
+  resampling <- rsmp("cv", folds = 5)
+  rr <- resample(task, graph, resampling)
+  performance <- rr$aggregate(msrs(c("classif.acc", "classif.auc", "classif.precision", "classif.recall")))
+  
+  # Extract model for coefficients (optional)
+  model <- graph$model$learner$model
+  coefficients <- coef(model)
+  
+  # Store results
+  results[[as.character(year)]] <- list(
+    performance = performance,
+    coefficients = coefficients
+  )
+}
+
+```{r}
+metrics_df <- data.frame()
+coefficients_df <- data.frame()
+confusion_matrices <- list()  # Initialize a list to store confusion matrices
+```
