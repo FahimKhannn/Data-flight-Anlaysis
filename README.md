@@ -12,7 +12,7 @@ Flight data was retrieved from Havard Database : https://dataverse.harvard.edu/d
 -
 
 ## Technologies Used
-- **Python (Jupyter notebook)**: Data exploration, machine learning.
+- **Python (Jupyter notebook) **: Data exploration, machine learning.
 - **R**: Data exploration, machine learning.
 - **SQL**: Data extraction, cleaning and data manipulation
 
@@ -28,6 +28,8 @@ Flight data was retrieved from Havard Database : https://dataverse.harvard.edu/d
 ### Machine Learning
 - Implemented logistic regression models to predict diverted flights.
 - Trained and evaluated models, achieving high accuracy in predictions.
+- Utilized AUC/ROC , Precison, Recall, F1, Support scores to evaluate problems
+- Used oversampling techqniues to give more precedence to minority class ("Diverted flights") due to class imbalance issue
 - Used feature engineering to enhance model performance, identifying critical factors influencing flight diversions.
 - Visualized the coefficients from the model across the 10 years of flight data
 
