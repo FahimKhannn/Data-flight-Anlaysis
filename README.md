@@ -7,9 +7,10 @@ Flight data was retrieved from Havard Database : https://dataverse.harvard.edu/d
 
 ## Objectives
 - Analyze flight delay patterns to identify best times and days of the week to minimise delays each year
+- Analyze whether older planes led to a higher probability of flights being delayed
 - Predict diverted flights using logistic regression using features from the dataset like departure date, the scheduled departure and arrival times, the coordinates and distance between departure
   and planned arrival airports, and the carrier
--
+
 
 ## Technologies Used
 - **Python (Jupyter notebook) **: Data exploration, machine learning.
