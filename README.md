@@ -13,7 +13,7 @@ Flight data was retrieved from Havard Database : https://dataverse.harvard.edu/d
 
 
 ## Technologies Used
-- **Python (Jupyter notebook) **: Data exploration, machine learning.
+- **Python** (Jupyter notebook): Data exploration, machine learning.
 - **R**: Data exploration, machine learning.
 - **SQL**: Data extraction, cleaning and data manipulation
 
